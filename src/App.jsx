@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import MapView from "./components/MapView";
-
-const API_BASE = "http://localhost:3000/api";
+import {
+  autenticarSPTrans,
+  buscarLinhas,
+  buscarParadasPorLinha,
+  buscarPosicaoDosOnibus,
+} from "./services/sptransApi";
 
 function App() {
   const [termo, setTermo] = useState("");
@@ -10,70 +13,33 @@ function App() {
   const [linhaSelecionada, setLinhaSelecionada] = useState(null);
   const [paradas, setParadas] = useState([]);
   const [onibus, setOnibus] = useState([]);
-  const intervalRef = useRef(null); // para guardar o intervalo de atualização
+  const intervalRef = useRef(null);
 
-  const token = import.meta.env.VITE_SPTRANS_TOKEN; // coloque seu token no .env
-
-  // Autentica apenas uma vez no carregamento do app
+  // Autentica ao iniciar
   useEffect(() => {
-    const autenticar = async () => {
-      try {
-        console.log("🔐 Autenticando na SPTrans...");
-        await axios.post(`${API_BASE}/Login/Autenticar?token=${token}`);
-        console.log("✅ Autenticação concluída!");
-      } catch (err) {
-        console.error("❌ Erro ao autenticar:", err.message);
-      }
-    };
-    autenticar();
-  }, [token]);
+    autenticarSPTrans();
+  }, []);
 
-  const buscarLinhas = async () => {
-    try {
-      const resp = await axios.get(
-        `${API_BASE}/Linha/Buscar?termosBusca=${termo}`
-      );
-      setLinhas(resp.data);
-    } catch (err) {
-      console.error("Erro ao buscar linhas:", err.message);
-    }
+  const handleBuscarLinhas = async () => {
+    const data = await buscarLinhas(termo);
+    setLinhas(data);
   };
 
   const buscarParadasELocalizacao = async (linha) => {
-    try {
-      console.log(`📍 Carregando paradas da linha ${linha.lt}...`);
-      const paradasResp = await axios.get(
-        `${API_BASE}/Parada/BuscarParadasPorLinha?codigoLinha=${linha.cl}`
-      );
-      setParadas(paradasResp.data);
+    const paradasData = await buscarParadasPorLinha(linha.cl);
+    setParadas(paradasData);
 
-      const atualizarOnibus = async () => {
-        try {
-          const posResp = await axios.get(
-            `${API_BASE}/Posicao/Linha?codigoLinha=${linha.cl}`
-          );
-          const veiculos = posResp.data?.vs || [];
-          setOnibus(veiculos);
-          console.log(`🚌 Atualizado: ${veiculos.length} veículos`);
-        } catch (err) {
-          console.error("Erro ao buscar posição dos ônibus:", err.message);
-        }
-      };
+    const atualizarOnibus = async () => {
+      const veiculos = await buscarPosicaoDosOnibus(linha.cl);
+      setOnibus(veiculos);
+      console.log(`🚌 Atualizado: ${veiculos.length} veículos`);
+    };
 
-      // Busca inicial
-      await atualizarOnibus();
-
-      // Cancela atualizações anteriores
-      if (intervalRef.current) clearInterval(intervalRef.current);
-
-      // Atualiza a cada 15s
-      intervalRef.current = setInterval(atualizarOnibus, 5000);
-    } catch (err) {
-      console.error("Erro ao buscar paradas:", err.message);
-    }
+    await atualizarOnibus();
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(atualizarOnibus, 5000);
   };
 
-  // Limpa o intervalo ao desmontar o componente
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -92,7 +58,7 @@ function App() {
           placeholder="Digite o número ou nome da linha..."
           style={{ padding: "0.5rem", width: "300px" }}
         />
-        <button onClick={buscarLinhas} style={{ marginLeft: "1rem" }}>
+        <button onClick={handleBuscarLinhas} style={{ marginLeft: "1rem" }}>
           Buscar
         </button>
       </div>
