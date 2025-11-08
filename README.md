@@ -3,6 +3,10 @@
 Este projeto é uma aplicação web que exibe, em um mapa interativo, as **linhas de ônibus de São Paulo**, seus **pontos de parada** e a **posição em tempo real dos veículos**.  
 A aplicação utiliza a **API pública da SPTrans (Olho Vivo)** através de um **backend em Node.js**, que atua como intermediário para proteger a chave de acesso e facilitar a integração com o frontend em React.
 
+
+![Imagem do WhatsApp de 2025-11-05 à(s) 21 29 02_ca2aa89d](https://github.com/user-attachments/assets/1bca2d5c-8b4c-43bf-90f2-939ba4a9ac36)
+
+
 ---
 
 ## 🚀 Funcionalidades
